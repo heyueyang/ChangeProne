@@ -6,15 +6,16 @@ import java.io.File;
 import java.util.Calendar;
 import java.util.Random;
 
-import classify.base.IsolationForest;
+import classify.base.MyIsolationForest;
 import classify.base.OtherBagging;
 import classify.base.OtherEvaluation;
+import weka.classifiers.meta.AdaBoostM1;
 import weka.core.Instances;
 
 public class ResultStatis{
 		static String[] c = {"weka.classifiers.bayes.NaiveBayes",
 			"weka.classifiers.trees.J48",
-			"weka.classifiers.functions.SMO","weka.classifiers.trees.MyIsolationForest"};
+			"weka.classifiers.functions.SMO","classify.base.MyIsolationForest"};
 			//,"weka.classifiers.trees.MyIsolationForest"//"classify.base.NewIsolationForest"};
 		static String m_class = "change_prone";//"bug_introducing";//"bug_introducingCopy";//
 		
@@ -33,7 +34,6 @@ public class ResultStatis{
 		    	for(int i = 0;i < files.length; i++){
 	
 		    		run(Config.result_folder,i,files[i].getAbsolutePath());
-		    		
 		    	}
 	    	}
 			long end_time = System.currentTimeMillis();
@@ -53,11 +53,11 @@ public class ResultStatis{
 			String out = resultFolder + tempPath.substring(0,tempPath.indexOf("//")) + "_result"+".xls";
 			System.out.println("Output Path:" + out);
 			File output = new File(out);
-	    	String[] head = {"classifier","bag","accuracy","gmean","recall-0","recall-1","precision-0","precision-1","fMeasure-0","fMeasure-1","AUC","time"};	    	
-			String[] methods = {"Simple","Bagging","Undersample","Oversample","UnderBag",	"OverBag", "SMOTE", "SMOTEBag"};//,"SMOTELog","OverLog","UnderLog"
+	    	String[] head = {"project","classifier","bag","accuracy","gmean","recall-0","recall-1","precision-0","precision-1","fMeasure-0","fMeasure-1","AUC","time"};	    	
+			String[] methods = {"Simple","Bagging","Undersample","Oversample","UnderBag",	"OverBag", "SMOTE", "SMOTEBag","AdaBoost"};//,"SMOTELog","OverLog","UnderLog"
 			int cnt = c.length;
-			String[][] result = new String[(cnt)*methods.length][12];
-			double[] temp = new double[12];
+			String[][] result = new String[(cnt)*methods.length][13];
+			double[] temp = new double[13];
 
 			OtherEvaluation eval = null;
 			Class<?> c1 = null;
@@ -81,7 +81,7 @@ public class ResultStatis{
 				c1 = Class.forName(c[i]);
 				clas = (weka.classifiers.Classifier) Class.forName(c[i]).newInstance();
 				if(c[i].contains("IsolationForest")){
-					((IsolationForest)clas).setSubsampleSize(20);
+					((MyIsolationForest)clas).setSubsampleSize(20);
 					
 				}
 				for(int j = 0;j < methods.length;j++){
@@ -251,6 +251,12 @@ public class ResultStatis{
 								eval.crossValidateModel(c2, data, 10, new Random());
 								break;
 							}
+							case 8:{
+								weka.classifiers.meta.AdaBoostM1 booster = new AdaBoostM1();
+								booster.setClassifier((weka.classifiers.Classifier) clas);
+								eval = new OtherEvaluation(data,0);
+								eval.crossValidateModel(booster, data, 10, new Random()); 
+							}
 						
 						}
 						if(t == run_times-1) 
@@ -258,35 +264,37 @@ public class ResultStatis{
 
 						temp[0] = 0;
 						temp[1] = 0;
-						temp[2] += 1-eval.errorRate();
-				        temp[3] += Math.sqrt(eval.recall(0)*eval.recall(1));
-				        temp[4] += eval.recall(0);//sampleRatio//
-				        temp[5] += eval.recall(1);
-				        temp[6] += eval.precision(0);
-				        temp[7] += eval.precision(1);
-				        temp[8] += eval.fMeasure(0);
-				        temp[9] += eval.fMeasure(1);
-				        temp[10] += eval.areaUnderROC(0);	
-				        temp[11] += 0;
+						temp[2] = 0;
+						temp[3] += 1-eval.errorRate();
+				        temp[4] += Math.sqrt(eval.recall(0)*eval.recall(1));
+				        temp[5] += eval.recall(0);//sampleRatio//
+				        temp[6] += eval.recall(1);
+				        temp[7] += eval.precision(0);
+				        temp[8] += eval.precision(1);
+				        temp[9] += eval.fMeasure(0);
+				        temp[10] += eval.fMeasure(1);
+				        temp[11] += eval.areaUnderROC(0);	
+				        temp[12] += 0;
 				       
 				    }
 					end = System.currentTimeMillis();
 					time = (end-start);
 					//System.out.println(eval.toClassDetailsString());
-					result[m][0] = c[i];
-					result[m][1] = methods[j];
-					result[m][2] = String.valueOf(temp[2]/run_times);
-			        result[m][3] = String.valueOf(temp[3]/run_times);
-			        result[m][4] = String.valueOf(temp[4]/run_times);//sampleRatio//
-			        result[m][5] = String.valueOf(temp[5]/run_times);
+					result[m][0] = project.substring(project.lastIndexOf("\\")+1,project.lastIndexOf("."));
+					result[m][1] = c[i].substring(c[i].lastIndexOf(".")+1);
+					result[m][2] = methods[j];
+					result[m][3] = String.valueOf(temp[3]/run_times);
+			        result[m][4] = String.valueOf(temp[4]/run_times);
+			        result[m][5] = String.valueOf(temp[5]/run_times);//sampleRatio//
 			        result[m][6] = String.valueOf(temp[6]/run_times);
 			        result[m][7] = String.valueOf(temp[7]/run_times);
 			        result[m][8] = String.valueOf(temp[8]/run_times);
 			        result[m][9] = String.valueOf(temp[9]/run_times);
-			        result[m][10] = String.valueOf(temp[10]/run_times);	
-			        result[m][11] = String.valueOf(time/10) + "ms";
+			        result[m][10] = String.valueOf(temp[10]/run_times);
+			        result[m][11] = String.valueOf(temp[11]/run_times);	
+			        result[m][12] = String.valueOf(time/10) + "ms";
 			        m++;
-			        for(int p = 0 ; p < 12; p++) temp[p] = 0;
+			        for(int p = 0 ; p < 13; p++) temp[p] = 0;
 					
 				}
 				

@@ -167,16 +167,16 @@ public class FileUtil {
 					wsheet.addCell(content);
 				}
 			}
-			
+			//向第一行写入项目路径
 			row = wsheet.getRows();
-			content = new jxl.write.Label(0, row, project); 
-			wsheet.addCell(content);
+			//content = new jxl.write.Label(0, row, project); 
+			//wsheet.addCell(content);
 			
 			for(int i = 0; i<res.length; i++)
 			{//行
 				for(int j = 0;j<res[i].length; j++)
 				{//列
-					content = new jxl.write.Label(j, row+i+1, String.valueOf(res[i][j])); 
+					content = new jxl.write.Label(j, row+i, String.valueOf(res[i][j])); 
 					wsheet.addCell(content);
 				}
 			} 
